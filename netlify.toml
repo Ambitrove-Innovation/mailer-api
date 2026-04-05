@@ -1,0 +1,9 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "eslint"
+
+[build.environment]
+  NODE_VERSION = "18"
