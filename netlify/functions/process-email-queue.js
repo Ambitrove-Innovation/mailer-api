@@ -13,7 +13,9 @@ if (!admin.apps.length) {
   });
 }
 
-
+const delay = async (ms) => {
+    new Promise(resolve => setTimeout(resolve, ms));
+};
 
 const handler = async function(event, context) {
 
@@ -125,6 +127,9 @@ const handler = async function(event, context) {
                     const errText = await response.text();
                     console.error(`❌ Maileroo failed to send to ${email}:`, errText);
                 }
+
+                await delay(500);
+                
             }
     
             // 6. Update or Delete the Firebase queue
