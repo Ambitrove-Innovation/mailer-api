@@ -165,9 +165,9 @@ export const config = {
 export default schedule("0 7,9,11,13 * * 1-5", handler);
 */
 
-// Temporarily run EVERY MINUTE for testing
+// Temporarily run EVERY 5 MINUTES for testing
 export const config = {
-    schedule: "*/2 * * * *" 
+    schedule: "*/5 * * * *" 
 };
 
-export default schedule("*/2 * * * *", handler);
+export default schedule("*/5 * * * *", handler);
