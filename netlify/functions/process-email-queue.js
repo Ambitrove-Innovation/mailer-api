@@ -57,7 +57,7 @@ const handler = async function(event, context) {
             }
     
             // 2. Fetch the oldest campaign that is ready to be processed 
-            const campaignsRef = db.collection("utils").doc("mailerooPayload");
+            const campaignsRef = db.collection("utils");
             const snapshot = await campaignsRef
                 .where('status', '==', 'queued')
                 .where('processAfter', '<=', now.toISOString())
