@@ -17,6 +17,12 @@ const delay = async (ms) => {
     new Promise(resolve => setTimeout(resolve, ms));
 };
 
+const headers = {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.MAILEROO_API_KEY
+};
+
+
 const handler = async function(event, context) {
 
     console.log("Waking up to process the email queue...");
@@ -116,7 +122,8 @@ const handler = async function(event, context) {
                     subject: campaignData.subject,
                     html: campaignData.html,
                     plain: campaignData.plain,
-                    attachments: processedAttachments
+                    attachments: processedAttachments,
+                    headers: headers
                 };
     
                 const response = await fetch('https://smtp.maileroo.com/api/v2/emails', {
