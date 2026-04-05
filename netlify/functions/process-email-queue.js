@@ -106,15 +106,20 @@ const handler = async function(event, context) {
             // 5. Send to Maileroo via their REST API
             for (const email of batch) {
                 const mailerooPayload = {
-                    from: { email: campaignData.fromEmail, name: campaignData.fromName },
-                    to: [{ email: email, name: "Recipient" }], 
+                    from: { 
+                        address: campaignData.fromEmail, 
+                        display_name: campaignData.fromName },
+                    to: [{ 
+                        address: email, 
+                        display_name: "Recipient" 
+                    }], 
                     subject: campaignData.subject,
                     html: campaignData.html,
                     plain: campaignData.plain,
                     attachments: processedAttachments
                 };
     
-                const response = await fetch('https://api.maileroo.com/send', {
+                const response = await fetch('https://smtp.maileroo.com/api/v2/emails', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
