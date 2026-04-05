@@ -56,8 +56,8 @@ const handler = async function(event, context) {
                 }
             }
     
-            // 2. Fetch the oldest campaign that is ready to be processed
-            const campaignsRef = doc(db, "utils", "mailerooPayload"); 
+            // 2. Fetch the oldest campaign that is ready to be processed 
+            const campaignsRef = db.collection("utils").doc("mailerooPayload");
             const snapshot = await campaignsRef
                 .where('status', '==', 'queued')
                 .where('processAfter', '<=', now.toISOString())
@@ -129,7 +129,7 @@ const handler = async function(event, context) {
                 }
 
                 await delay(500);
-                
+
             }
     
             // 6. Update or Delete the Firebase queue
