@@ -52,7 +52,7 @@ const handler = async function(event, context) {
                 
                 if (lastScheduledDate && now < lastScheduledDate) {
                     console.log(`⏸️ Native queue is busy until ${lastScheduledDate}. Netlify is going back to sleep.`);
-                    return { statusCode: 200 };
+                    return new Response(`⏸️ Native queue is busy until ${lastScheduledDate}. Netlify is going back to sleep.`, { statusCode: 200 });
                 }
             }
     
@@ -67,7 +67,7 @@ const handler = async function(event, context) {
     
             if (snapshot.empty) {
                 console.log("💤 No campaigns are ready to be processed. Going back to sleep.");
-                return { statusCode: 200 };
+                return new Response("No campaigns are ready to be processed. Going back to sleep.", { status: 200 });
             }
     
             const campaignDoc = snapshot.docs[0];
@@ -77,7 +77,7 @@ const handler = async function(event, context) {
             // Safety catch: If array is empty, delete the document
             if (recipients.length === 0) {
                 await campaignDoc.ref.delete();
-                return { statusCode: 200 };
+                return new Response("Array is empty", { status: 200 });
             }
     
             // 3. Slice off exactly 30 emails for this hour's batch
@@ -143,18 +143,16 @@ const handler = async function(event, context) {
                 });
             }
     
-            return { statusCode: 200 };
+            return new Response("Batch processed successfully", { status: 200 });
     
         } catch (error) {
             console.error("🚨 Queue processing failed:", error);
-            return { statusCode: 500 };
+            return new Response("Internal server error", { status: 500 });
         }
 
     } catch (error) {
         console.error("Queue processing failed:", error);
-        return {
-            statusCode: 500,
-        };
+        return new Response("Internal server error", { status: 500 });
     }
 };
 
