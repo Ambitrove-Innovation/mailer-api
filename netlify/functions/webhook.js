@@ -45,8 +45,8 @@ exports.handler = async (event, context) => {
     // const signature = event.headers["x-maileroo-signature"];
 
     // Extract key info (adjust depending on Maileroo payload)
-    const email = data?.recipient || "unknown";
-    const status = data?.event || "unknown";
+    const email = data?.event_data?.to || "unknown";
+    const status = data?.event_type || "unknown";
     const timestamp = new Date().toISOString();
 
     // Store EVERYTHING (raw + structured)
@@ -57,7 +57,7 @@ exports.handler = async (event, context) => {
       raw: data,
     });
 
-    if (status in ["deferred", "rejected", "failed", "complained"]) {
+    if (["deferred", "rejected", "failed", "complained"].includes(status)) {
 
       try {
 
@@ -74,7 +74,7 @@ exports.handler = async (event, context) => {
       } catch (error) {
 
         return {
-          statusCode: 404,
+          statusCode: 500,
           body: JSON.stringify({ 
             error: "Data could not be saved to database",
             errorMessage: error
@@ -98,7 +98,7 @@ exports.handler = async (event, context) => {
       statusCode: 500,
       body: JSON.stringify({ 
         error: "Internal Server Error",
-        errorMessage: error
+        errorMessage: error.message
      }),
     };
 
