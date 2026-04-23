@@ -1,4 +1,5 @@
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 
 // Initialize Firebase ONCE
 if (!admin.apps.length) {
@@ -15,9 +16,14 @@ const db = admin.firestore(); // or admin.database() for Realtime DB
 
 // Optional: Verify Maileroo signature
 function verifySignature(req) {
+
   const secret = process.env.MAILEROO_SECRET;
+
   const signature = req.headers['x-maileroo-signature']; // replace with actual Maileroo header if different
-  const payload = JSON.stringify(req.body);
+  
+  const payload = req.body;
+
+  if (!signature || !secret) return false;
 
   const hmac = crypto.createHmac('sha256', secret);
   hmac.update(payload);
@@ -37,7 +43,19 @@ exports.handler = async (event, context) => {
             statusCode: 405,
             body: "Method Not Allowed",
         };
-    } 
+    }
+
+    // ==========================================
+    // 🔐 2. VERIFY THE SIGNATURE HERE
+    // Pass the entire 'event' object as the parameter
+    // ==========================================
+    if (!verifySignature(event)) {
+        console.error("🚨 Unauthorized Webhook Attempt: Invalid Signature");
+        return {
+            statusCode: 401,
+            body: JSON.stringify({ error: "Unauthorized" }),
+        };
+    }
 
     const data = JSON.parse(event.body);
 
@@ -47,6 +65,7 @@ exports.handler = async (event, context) => {
     // Extract key info (adjust depending on Maileroo payload)
     const email = data?.event_data?.to || "unknown";
     const status = data?.event_type || "unknown";
+    const subject = data?.tags?.[0] || "unknown subject"
     const timestamp = new Date().toISOString();
 
     // Store EVERYTHING (raw + structured)
@@ -57,7 +76,7 @@ exports.handler = async (event, context) => {
       raw: data,
     });
 
-    if (["deferred", "rejected", "failed", "complained"].includes(status)) {
+    if (["deferred", "rejected", "failed", "complained", "bounced"].includes(status)) {
 
       try {
 
@@ -65,6 +84,7 @@ exports.handler = async (event, context) => {
         await db.collection("notifications").add({
           email,
           status,
+          subject,
           timestamp,
           isRead: false,
           raw: data,
@@ -77,7 +97,7 @@ exports.handler = async (event, context) => {
           statusCode: 500,
           body: JSON.stringify({ 
             error: "Data could not be saved to database",
-            errorMessage: error
+            errorMessage: error.message
          }),
         };
 
