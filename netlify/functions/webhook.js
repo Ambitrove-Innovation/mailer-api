@@ -67,6 +67,9 @@ exports.handler = async (event, context) => {
     const status = data?.event_type || "unknown";
     const subject = data?.tags?.[0] || "unknown subject"
     const timestamp = new Date().toISOString();
+    const messageId = data?.message_reference_id || 
+                  (data?.message_id ? data?.message_id.replace(/[<>]/g, "") : null) || 
+                  Date.now().toString();
 
     // Store EVERYTHING (raw + structured)
     await db.collection("emailEvents").add({
@@ -81,7 +84,7 @@ exports.handler = async (event, context) => {
       try {
 
         // Store IMPORTANT email data (raw + structured)
-        await db.collection("notifications").add({
+        await db.collection("notifications").doc(messageId).set({
           email,
           status,
           subject,
