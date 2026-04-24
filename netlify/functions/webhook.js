@@ -70,6 +70,7 @@ exports.handler = async (event, context) => {
     const messageId = data?.message_reference_id || 
                   (data?.message_id ? data?.message_id.replace(/[<>]/g, "") : null) || 
                   Date.now().toString();
+    
 
     // Store EVERYTHING (raw + structured)
     await db.collection("emailEvents").add({
@@ -91,7 +92,8 @@ exports.handler = async (event, context) => {
           timestamp,
           isRead: false,
           raw: data,
-        });
+          updatedAt: timestamp
+        }, { merge: true });
         console.log("Successfully added important notifications");
 
       } catch (error) {
