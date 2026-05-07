@@ -87,8 +87,10 @@ const handler = async function(event, context) {
             }
     
             // 3. Slice off exactly 30 emails for this hour's batch
-            const batch = recipients.slice(0, 30);
-            const remainingRecipients = recipients.slice(30);
+            //const batch = recipients.slice(0, 30);
+            //const remainingRecipients = recipients.slice(30);
+            const batch = recipients.slice(0, 1);
+            const remainingRecipients = recipients.slice(1);
     
             console.log(`📤 Sending ${batch.length} emails. ${remainingRecipients.length} left in queue.`);
     
@@ -171,7 +173,7 @@ const handler = async function(event, context) {
 
 // This tells Netlify to run this function at the top of every second hour
 export const config = {
-    schedule: "0 7,9,11,13 * * 1-5" 
+    schedule: "0 7,8,9,10,11,12,13,14,15 * * 1-5" 
 };
 
-export default schedule("0 7,9,11,13 * * 1-5", handler);
+export default schedule("0 7,8,9,10,11,12,13,14,15 * * 1-5", handler);
