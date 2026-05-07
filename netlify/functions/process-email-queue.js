@@ -173,7 +173,7 @@ const handler = async function(event, context) {
 
 // This tells Netlify to run this function at the top of every second hour
 export const config = {
-    schedule: "0 1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5" 
+    schedule: "0 0,1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5" 
 };
 
-export default schedule("0 1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5", handler);
+export default schedule("0 0,1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5", handler);
