@@ -1,5 +1,6 @@
 // netlify/functions/process-email-queue.js
 import { schedule } from '@netlify/functions';
+import { SAFMA_LOGO_BASE64, SAFMA_FOOTER_BASE64 } from './staticAssets';
 const admin = require('firebase-admin');
 
 // Initialize Firebase ONCE
@@ -95,6 +96,7 @@ const handler = async function(event, context) {
             console.log(`📤 Sending ${batch.length} emails. ${remainingRecipients.length} left in queue.`);
     
             // 4. Download attachments from Cloudinary & convert back to Base64 for Maileroo
+            /*
             const processedAttachments = await Promise.all(
                 (campaignData.attachments || []).map(async (att) => {
                     const response = await fetch(att.url);
@@ -110,8 +112,137 @@ const handler = async function(event, context) {
                     };
                 })
             );
+            */
+
+            // 4. Download attachments from Cloudinary & convert back to Base64 for Maileroo
+            /*
+            const processedAttachments = await Promise.all(
+                (campaignData.attachments || []).map(async (att) => {
+                    
+                    // 🛡️ Guard 1: If it's your Logo or Footer (already Base64), skip the download entirely!
+                    if (att.contentBase64) {
+                        return {
+                            filename: att.fileName || "image.png", // Maileroo strictly requires 'filename'
+                            content: att.contentBase64
+                        };
+                    }
+
+                    // 🛡️ Guard 2: Grab the Cloudinary URL (sometimes it's saved as secure_url)
+                    const targetUrl = att.url || att.secure_url;
+                    const response = await fetch(targetUrl);
+
+                    // 🛡️ Guard 3: Stop the silent 404 HTML bug!
+                    if (!response.ok) {
+                        console.error("Cloudinary failed to serve the file:", targetUrl);
+                        throw new Error(`Failed to fetch attachment. Status: ${response.status}`);
+                    }
+
+                    const arrayBuffer = await response.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    
+                    return {
+                        // Cloudinary sometimes renames 'fileName' to 'original_filename', so we check both
+                        filename: att.fileName || att.original_filename || "attachment.png", 
+                        content: buffer.toString('base64')
+                        
+                        // Note: Maileroo's basic v2 REST endpoint usually ignores 'inline' and 'content_type', 
+                        // but keeping them removed keeps the payload safely inside their strict schema!
+                    };
+                })
+            );
+            */
+
+
+            // 4. Download dynamic attachments from Cloudinary & convert back to Base64
+            const processedAttachments = await Promise.all(
+                (campaignData.attachments || []).map(async (att) => {
+                    
+                    // 🛡️ Guard 1: Skip inline Base64 files completely. 
+                    // We handle the Logo and Footer locally in step 6!
+                    if (att.contentBase64) return null; 
+
+                    // 🛡️ Guard 2: Grab the Cloudinary URL
+                    const targetUrl = att.url || att.secure_url;
+                    if (!targetUrl) return null;
+
+                    const response = await fetch(targetUrl);
+
+                    // 🛡️ Guard 3: Stop the silent 404 HTML bug!
+                    if (!response.ok) {
+                        console.error("Cloudinary failed to serve the file:", targetUrl);
+                        throw new Error(`Failed to fetch attachment. Status: ${response.status}`);
+                    }
+
+                    const arrayBuffer = await response.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    
+                    return {
+                        filename: att.fileName || att.original_filename || "attachment.png", 
+                        content: buffer.toString('base64')
+                    };
+                })
+            );
+
+            // 5. Filter out any of the 'null' values we skipped in Guard 1
+            const finalAttachments = processedAttachments.filter(att => att !== null);
+
+            // 6. Inject the Local Static Assets as INLINE attachments for Maileroo
+            finalAttachments.push(
+                {
+                    filename: "safma-logo.png",
+                    content: SAFMA_LOGO_BASE64,
+                    inline: true,
+                    content_id: "safma-logo.png" // 👈 This strictly links to src="cid:safma-logo.png" in your HTML!
+                },
+                {
+                    filename: "confidential.png",
+                    content: SAFMA_FOOTER_BASE64,
+                    inline: true,
+                    content_id: "confidential.png" // 👈 This strictly links to src="cid:confidential.png" in your HTML!
+                }
+            );
+
+            // Now pass `finalAttachments` into your mailerooPayload!
+
+            // 7. Send to Maileroo via their REST API (IN PARALLEL)
+            // Promise.all fires every request simultaneously. 30 requests will finish in ~300ms total!
+
+            await Promise.all(
+                batch.map(async (email) => {
+                    const mailerooPayload = {
+                        from: { 
+                            address: campaignData.fromEmail, 
+                            display_name: campaignData.fromName 
+                        },
+                        to: [{ 
+                            address: email, 
+                            display_name: "Recipient" 
+                        }], 
+                        subject: campaignData.subject,
+                        html: campaignData.html,
+                        plain: campaignData.plain,
+                        attachments: finalAttachments
+                    };
+
+                    const response = await fetch('https://smtp.maileroo.com/api/v2/emails', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': process.env.MAILEROO_API_KEY
+                        },
+                        body: JSON.stringify(mailerooPayload)
+                    });
+
+                    // Optional: Catch individual failures without crashing the whole batch
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        console.error(`❌ Maileroo failed to send to ${email}:`, errText);
+                    }
+                })
+            );
     
             // 5. Send to Maileroo via their REST API
+            /*
             for (const email of batch) {
                 const mailerooPayload = {
                     from: { 
@@ -145,6 +276,8 @@ const handler = async function(event, context) {
                 await delay(500);
 
             }
+            */
+
     
             // 6. Update or Delete the Firebase queue
             if (remainingRecipients.length === 0) {
@@ -173,7 +306,7 @@ const handler = async function(event, context) {
 
 // This tells Netlify to run this function at the top of every second hour
 export const config = {
-    schedule: "0 0,1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5" 
+    schedule: "*/10 * * * 1-5" 
 };
 
-export default schedule("0 0,1,2,3,4,7,8,9,10,11,12,13,14,15 * * 1-5", handler);
+export default schedule("*/10 * * * 1-5", handler);
