@@ -1,5 +1,5 @@
 // netlify/functions/process-email-queue.js
-import { schedule } from '@netlify/functions';
+import { v2 as cloudinary } from 'cloudinary';
 import { SAFMA_LOGO_BASE64, SAFMA_FOOTER_BASE64 } from './staticAssets';
 const admin = require('firebase-admin');
 
@@ -31,7 +31,7 @@ const headers = {
 };
 
 // 🛡️ THE CLEANUP PROTOCOL
-const deleteCloudinaryAttachments = () => {
+const deleteCloudinaryAttachments = async (campaignData) => {
 
     console.log("Queue triggered, but recipient list is empty. Initiating cleanup...");
 
@@ -58,16 +58,12 @@ const deleteCloudinaryAttachments = () => {
         }));
     }
 
-    // 2. Delete the useless payload from Firestore so it doesn't run again
-    const ref = doc(db, "utils", "mailerooPayload");
-    await deleteDoc(ref);
-
     console.log("Cleanup complete. Queue safely aborted.");
     
     // 3. Kill the function early so Maileroo never gets called!
     return {
         statusCode: 200,
-        body: "Aborted: No recipients. Cleanup successful."
+        body: "Aborted: No attachments. Cleanup successful."
     };
 }
 
@@ -331,7 +327,7 @@ const handler = async function(event, context) {
             if (remainingRecipients.length === 0) {
 
                 console.log("✅ Campaign completely finished! Deleting from Firestore.");
-                await deleteCloudinaryAttachments();
+                await deleteCloudinaryAttachments(campaignData);
                 await campaignDoc.ref.delete();
 
             } else {
@@ -362,4 +358,4 @@ export const config = {
     schedule: "*/10 * * * 1-5" 
 };
 
-export default schedule("*/10 * * * 1-5", handler);
+export default handler;
