@@ -125,7 +125,7 @@ const handler = async function(event, context) {
                     html: campaignData.html,
                     plain: campaignData.plain,
                     attachments: processedAttachments,
-                    headers: headers
+                    //headers: headers
                 };
     
                 const response = await fetch('https://smtp.maileroo.com/api/v2/emails', {
