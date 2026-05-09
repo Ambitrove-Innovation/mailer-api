@@ -332,7 +332,7 @@ const handler = async function(event, context) {
 
             } else {
 
-                console.log(`⏳ Updating queue. Next batch will send in 1 hour.`);
+                console.log(`⏳ Updating queue. Next batch will send in 10 minutes.`);
                 await campaignDoc.ref.update({
                     recipients: remainingRecipients,
                 });
