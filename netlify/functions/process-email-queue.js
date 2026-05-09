@@ -221,7 +221,7 @@ const handler = async function(event, context) {
                     const buffer = Buffer.from(arrayBuffer);
                     
                     return {
-                        filename: att.fileName || att.original_filename || "attachment.png", 
+                        file_name: att.fileName || att.original_filename || "attachment.png", 
                         content: buffer.toString('base64')
                     };
                 })
@@ -233,13 +233,13 @@ const handler = async function(event, context) {
             // 6. Inject the Local Static Assets as INLINE attachments for Maileroo
             finalAttachments.push(
                 {
-                    filename: "safma-logo.png",
+                    file_name: "safma-logo.png",
                     content: SAFMA_LOGO_BASE64,
                     inline: true,
                     content_id: "safma-logo.png" // 👈 This strictly links to src="cid:safma-logo.png" in your HTML!
                 },
                 {
-                    filename: "confidential.png",
+                    file_name: "confidential.png",
                     content: SAFMA_FOOTER_BASE64,
                     inline: true,
                     content_id: "confidential.png" // 👈 This strictly links to src="cid:confidential.png" in your HTML!
