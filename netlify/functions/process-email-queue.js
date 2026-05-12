@@ -415,7 +415,7 @@ const handler = async function(event, context) {
 
 // This tells Netlify to run this function at the top of every second hour
 export const config = {
-    schedule: "*/10 * * * *" 
+    schedule: "*/5 * * * *" 
 };
 
 export default handler;
