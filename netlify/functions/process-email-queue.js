@@ -108,13 +108,20 @@ const handler = async function(event, context) {
             }
     
             // 2. Fetch the oldest campaign that is ready to be processed 
-            const campaignsRef = db.collection("utils");
+            //const campaignsRef = db.collection("mailerooPayloads");
+            /*
             const snapshot = await campaignsRef
                 .where('status', '==', 'queued')
                 .where('processAfter', '<=', now.toISOString())
                 .orderBy('processAfter', 'asc')
                 .limit(1)
                 .get();
+            */
+
+            const snapshot = await db.collection("mailerooPayloads")
+                .orderBy("createdAt", "asc")
+                .limit(1)
+                .get()
     
             if (snapshot.empty) {
                 console.log("💤 No campaigns are ready to be processed. Going back to sleep.");
@@ -123,11 +130,12 @@ const handler = async function(event, context) {
     
             const campaignDoc = snapshot.docs[0];
             const campaignData = campaignDoc.data();
+            const campaignRef = snapshot.ref();
             const recipients = campaignData.recipients || [];
     
             // Safety catch: If array is empty, delete the document
             if (recipients.length === 0) {
-                await campaignDoc.ref.delete();
+                await campaignRef.delete();
                 return new Response("Array is empty", { status: 200 });
             }
     
@@ -325,15 +333,69 @@ const handler = async function(event, context) {
             if (remainingRecipients.length === 0) {
 
                 console.log("✅ Campaign completely finished! Deleting from Firestore.");
-                await deleteCloudinaryAttachments(campaignData);
-                await campaignDoc.ref.delete();
+
+                // 1. Prepare your concurrent cleanup array
+                const cleanupTasks = [
+                    deleteCloudinaryAttachments(campaignData),
+                    campaignDoc.ref.delete() // Destroy the finished queue payload
+                ];
+
+                console.log();
+
+                const historyId = campaignData.historyId || null;
+
+                if (historyId) {
+
+                    const historyRef = db.collection("history").doc(historyId);
+
+                    await historyRef.update({
+                        status: "completed",
+                        completedAt: admin.firestore.FieldValue.serverTimestamp() // Native backend timestamp
+                    }, { merge: true });
+
+                }
+
+                // 3. Check if there are other campaigns waiting in line
+                const remainingQueueSnapshot = await db.collection("mailerooPayloads")
+                    .where(admin.firestore.FieldPath.documentId(), "!=", campaignDoc.id)
+                    .limit(1)
+                    .get();
+
+                if (remainingQueueSnapshot.empty) {
+                    // Queue is completely empty! Safe to do a master reset.
+                    console.log("✨ Deep queue is empty. Resetting master state.");
+                    cleanupTasks.push(stateRef.update({
+                        activeScheduledCount: 0,
+                        lastScheduledDate: null
+                    }));
+                } else {
+                    // Other campaigns are waiting! Just decrement the batch size we just sent.
+                    console.log("⏳ Other campaigns detected in queue. Decrementing active count safely.");
+                    cleanupTasks.push(stateRef.update({
+                        // Subtracts exactly this batch's size from the global counter
+                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients)
+                    }));
+                }
+
+                // 4. Fire everything off simultaneously!
+                await Promise.all(cleanupTasks);
 
             } else {
 
                 console.log(`⏳ Updating queue. Next batch will send in 10 minutes.`);
-                await campaignDoc.ref.update({
-                    recipients: remainingRecipients,
-                });
+                
+
+                await Promise.all([
+
+                    campaignDoc.ref.update({
+                        recipients: remainingRecipients,
+                    }),
+
+                    stateRef.update({
+                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients)
+                    }),
+
+                ])
 
             }
     
