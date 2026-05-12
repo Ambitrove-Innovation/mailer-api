@@ -79,10 +79,6 @@ const handler = async function(event, context) {
             const db = admin.firestore();
             const now = new Date();
 
-            // ==========================================
-            // 🛑 NEW: MASTER PAUSE SWITCH 
-            // Check if Maileroo is busy with a native queue
-            // ==========================================
             const stateRef = db.collection('utils').doc('queueState');
             const stateSnap = await stateRef.get();
 
@@ -108,10 +104,8 @@ const handler = async function(event, context) {
             }
     
             // 3. Slice off exactly 30 emails for this hour's batch
-            //const batch = recipients.slice(0, 30);
-            //const remainingRecipients = recipients.slice(30);
-            const batch = recipients.slice(0, 1);
-            const remainingRecipients = recipients.slice(1);
+            const batch = recipients.slice(0, 30);
+            const remainingRecipients = recipients.slice(30);
     
             console.log(`📤 Sending ${batch.length} emails. ${remainingRecipients.length} left in queue.`);
 
@@ -282,6 +276,10 @@ const handler = async function(event, context) {
         }
 
     } catch (error) {
+        if (error.status === 429) {
+            console.log("⚠️ Rolling window overlap hit. Leaving DB untouched. Will retry naturally next hour.");
+            return { statusCode: 200 }; // Exit gracefully without crashing
+        }
         console.error("Queue processing failed:", error);
         return new Response("Internal server error", { status: 500 });
     }
@@ -290,7 +288,7 @@ const handler = async function(event, context) {
 
 // This tells Netlify to run this function at the top of every second hour
 export const config = {
-    schedule: "*/5 * * * *" 
+    schedule: "10 6-15 * * 1-5" 
 };
 
 export default handler;
