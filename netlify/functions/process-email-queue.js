@@ -95,6 +95,8 @@ const handler = async function(event, context) {
             // ==========================================
             const stateRef = db.collection('utils').doc('queueState');
             const stateSnap = await stateRef.get();
+
+            /*
             
             if (stateSnap.exists) {
                 const stateData = stateSnap.data();
@@ -106,6 +108,8 @@ const handler = async function(event, context) {
                     return new Response(`⏸️ Native queue is busy until ${lastScheduledDate}. Netlify is going back to sleep.`, { statusCode: 200 });
                 }
             }
+
+            */
     
             // 2. Fetch the oldest campaign that is ready to be processed 
             //const campaignsRef = db.collection("mailerooPayloads");
