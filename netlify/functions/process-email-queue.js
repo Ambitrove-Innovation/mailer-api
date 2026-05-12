@@ -340,7 +340,7 @@ const handler = async function(event, context) {
                     campaignDoc.ref.delete() // Destroy the finished queue payload
                 ];
 
-                console.log();
+                console.log("Remaining recipients: " + remainingRecipients);
 
                 const historyId = campaignData.historyId || null;
 
@@ -373,7 +373,7 @@ const handler = async function(event, context) {
                     console.log("⏳ Other campaigns detected in queue. Decrementing active count safely.");
                     cleanupTasks.push(stateRef.update({
                         // Subtracts exactly this batch's size from the global counter
-                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients)
+                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients.length)
                     }));
                 }
 
@@ -392,7 +392,7 @@ const handler = async function(event, context) {
                     }),
 
                     stateRef.update({
-                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients)
+                        activeScheduledCount: admin.firestore.FieldValue.increment(-remainingRecipients.length)
                     }),
 
                 ])
