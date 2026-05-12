@@ -130,7 +130,7 @@ const handler = async function(event, context) {
     
             const campaignDoc = snapshot.docs[0];
             const campaignData = campaignDoc.data();
-            const campaignRef = snapshot.ref();
+            const campaignRef = campaignDoc.ref;
             const recipients = campaignData.recipients || [];
     
             // Safety catch: If array is empty, delete the document
