@@ -3,6 +3,22 @@ exports.handler = async (event, context) => {
 
   try {
 
+    // 1. Define the CORS headers
+    const headers = {
+      "Access-Control-Allow-Origin": "*", // Allows requests from any domain (your local machine or production sites)
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+
+    // 2. Handle the Preflight OPTIONS request instantly
+    if (event.httpMethod === "OPTIONS") {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ message: "Successful preflight" }),
+      };
+    }
+
     // Only allow POST
     if (event.httpMethod !== "POST") {
         return {
