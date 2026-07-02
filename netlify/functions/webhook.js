@@ -1,6 +1,3 @@
-const MAILEROO_API_KEY = process.env.MAILEROO_API_KEY;
-const mailerooClient = new MailerooClient(MAILEROO_API_KEY);
-
 // Webhook endpoint
 exports.handler = async (event, context) => {
 
@@ -13,6 +10,10 @@ exports.handler = async (event, context) => {
             body: "Method Not Allowed",
         };
     }
+
+    const { MailerooClient } = await import("maileroo-sdk");
+    const MAILEROO_API_KEY = process.env.MAILEROO_API_KEY;
+    const mailerooClient = new MailerooClient(MAILEROO_API_KEY);
 
     const data = JSON.parse(event.body);
 
@@ -67,6 +68,15 @@ exports.handler = async (event, context) => {
             error: "Missing required form fields.",
          }),
         };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        received: true,
+        message: "Email sent successfully!",
+      }),
+      headers: { "Content-Type": "application/json" }
     }
     
 

@@ -14,6 +14,7 @@
     "@netlify/functions": "^5.1.5",
     "body-parser": "^2.2.2",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "maileroo-sdk": "^1.0.1"
   }
 }
